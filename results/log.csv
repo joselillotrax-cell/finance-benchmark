@@ -1,0 +1,2 @@
+date,model,problem_id,candidate_answer,correct,expected,detail
+2026-09-15,gemini-3.6-flash,fi-010,27.85,False,0.0874131,"Wrong from the first step: solved YTM as 4.7174% instead of 4.6867% (+3.07 bp). Duration, convexity, and exact reprice all inherit the error. Model's own closing explanation blamed 'Macaulay vs modified duration confusion' rather than the actual root cause — a numerically wrong YTM solve."
