@@ -5,6 +5,12 @@ solver: price_yield
 answer_field: ytm_pct
 unit: "%"
 tolerance: 0.001
+known_failure_modes:
+  # Observed four independent times across fi-001/fi-002/fi-003/fi-010 from
+  # the same model family — not a formula-derived alternate value like
+  # naive_annualisation, but a recurring wrong convergence point worth
+  # naming. See results/log.csv for the individual runs.
+  gemini_yield_bias: 4.7174
 
 prompt: |
   A Spanish government bond has face value EUR 1,000, a 4% annual coupon paid

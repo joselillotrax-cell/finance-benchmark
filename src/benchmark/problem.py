@@ -48,9 +48,15 @@ class Problem:
             Defaults to 10x `tolerance` when not set explicitly. A near miss
             is never graded as correct; it is a separate, visible category
             rather than being folded into either "right" or "wrong".
-        known_failure_modes: Name -> alternate solver output key. If a wrong
-            answer matches one of these within tolerance, grading reports
-            which known failure pattern it matches, rather than just "wrong".
+        known_failure_modes: Name -> either an alternate solver output field
+            (a string, e.g. "naive_modified_duration_years" — a value derived
+            by the *same* formula error on *this* problem's own inputs), or a
+            literal number (an empirically observed recurring wrong answer,
+            not derived from any formula here — e.g. a specific model
+            converging to the same wrong yield across several different
+            problems on the same bond). If a wrong answer matches one of
+            these within tolerance, grading reports which known failure
+            pattern it matches, rather than just "wrong".
     """
 
     id: str
@@ -63,7 +69,7 @@ class Problem:
     unit: str = ""
     tolerance: float = 1e-6
     loose_tolerance: float | None = None
-    known_failure_modes: dict[str, str] = field(default_factory=dict)
+    known_failure_modes: dict[str, str | float] = field(default_factory=dict)
 
     @property
     def effective_loose_tolerance(self) -> float:

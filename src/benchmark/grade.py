@@ -67,19 +67,29 @@ def _classify(diff: float, tolerance: float, loose_tolerance: float) -> Status:
     return "wrong"
 
 
+def _match_known_failure_mode(
+    candidate: float, problem: Problem, outputs: dict[str, Any]
+) -> str | None:
+    """Check a wrong candidate against every named failure pattern.
+
+    A pattern's value is either a literal number (an empirically observed
+    recurring wrong answer) or a string naming a solver output field (a value
+    derived by the same formula error on this problem's own inputs).
+    """
+    for name, pattern in problem.known_failure_modes.items():
+        target = pattern if isinstance(pattern, (int, float)) else outputs.get(pattern)
+        if target is not None and abs(candidate - target) <= problem.tolerance:
+            return name
+    return None
+
+
 def _grade_compute(problem: Problem, candidate: float) -> GradeResult:
     outputs = SOLVERS[problem.solver](problem.inputs)
     expected = outputs[problem.answer_field]
     diff = abs(candidate - expected)
     status = _classify(diff, problem.tolerance, problem.effective_loose_tolerance)
 
-    matched = None
-    if status != "correct":
-        for name, field in problem.known_failure_modes.items():
-            alt = outputs.get(field)
-            if alt is not None and abs(candidate - alt) <= problem.tolerance:
-                matched = name
-                break
+    matched = _match_known_failure_mode(candidate, problem, outputs) if status != "correct" else None
 
     if status == "correct":
         detail = f"within tolerance of {expected:.6g} {problem.unit}"
@@ -90,9 +100,11 @@ def _grade_compute(problem: Problem, candidate: float) -> GradeResult:
             f"method looks sound, precision is off)"
         )
     elif matched:
+        pattern = problem.known_failure_modes[matched]
+        pattern_value = pattern if isinstance(pattern, (int, float)) else outputs[pattern]
         detail = (
             f"expected {expected:.6g} {problem.unit}; matches the known "
-            f"'{matched}' failure pattern ({outputs[problem.known_failure_modes[matched]]:.6g})"
+            f"'{matched}' failure pattern ({pattern_value:.6g})"
         )
     else:
         detail = f"expected {expected:.6g} {problem.unit}, got {candidate:.6g}"
@@ -107,8 +119,8 @@ def _grade_audit(problem: Problem, candidate: dict[str, Any]) -> GradeResult:
     verdict_ok = bool(candidate.get("is_correct")) == outputs["is_correct"]
 
     value_status: Status = "correct"
+    corrected = candidate.get("corrected_ytm_pct")
     if not outputs["is_correct"]:
-        corrected = candidate.get("corrected_ytm_pct")
         if corrected is None:
             value_status = "wrong"
         else:
@@ -120,16 +132,28 @@ def _grade_audit(problem: Problem, candidate: dict[str, Any]) -> GradeResult:
     else:
         status = value_status
 
+    matched = None
+    if status != "correct" and corrected is not None:
+        matched = _match_known_failure_mode(corrected, problem, outputs)
+
     if status == "correct":
         detail = "verdict and corrected figure both right"
     elif not verdict_ok:
         detail = f"wrong verdict: claim is actually {'valid' if outputs['is_correct'] else 'invalid'}"
+    elif matched:
+        pattern = problem.known_failure_modes[matched]
+        pattern_value = pattern if isinstance(pattern, (int, float)) else outputs[pattern]
+        detail = (
+            f"verdict right, but the corrected figure matches the known "
+            f"'{matched}' failure pattern ({pattern_value:.6g}) rather than "
+            f"the true {outputs['correct_ytm_pct']:.6g}"
+        )
     elif status == "near_miss":
         detail = f"verdict right, corrected figure close but outside tight tolerance: expected {outputs['correct_ytm_pct']:.6g}"
     else:
         detail = f"verdict right, but corrected figure off: expected {outputs['correct_ytm_pct']:.6g}"
 
-    return GradeResult(status, expected, candidate, None, detail)
+    return GradeResult(status, expected, candidate, matched, detail)
 
 
 def grade(problem: Problem, candidate: Any) -> GradeResult:

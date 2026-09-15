@@ -4,6 +4,8 @@ kind: audit
 solver: audit
 unit: "%"
 tolerance: 0.001
+known_failure_modes:
+  gemini_yield_bias: 4.7174
 
 prompt: |
   A colleague tells you: "This bond — EUR 1,000 face, 4% semi-annual coupon,

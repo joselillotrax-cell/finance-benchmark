@@ -167,6 +167,24 @@ def test_audit_near_miss_on_the_corrected_value_does_not_count_as_correct():
     assert result.status == "near_miss"
 
 
+def test_literal_known_failure_mode_is_named_not_just_failed():
+    """Regression for the gemini_yield_bias pattern: observed four
+    independent times across four different problems on this bond, this is
+    the clearest evidence yet that it's a real convergence point for that
+    model family, not noise — grading should say so by name."""
+    p = load_problem(ROOT / "fixed_income" / "fi-001-ytm-actact.yaml")
+    result = grade(p, 4.7174)
+    assert result.status == "wrong"
+    assert result.matched_known_failure_mode == "gemini_yield_bias"
+
+
+def test_literal_known_failure_mode_is_matched_on_audit_corrected_value_too():
+    p = load_problem(ROOT / "fixed_income" / "fi-003-audit-below-par.yaml")
+    result = grade(p, {"is_correct": False, "corrected_ytm_pct": 4.7174})
+    assert result.status == "wrong"
+    assert result.matched_known_failure_mode == "gemini_yield_bias"
+
+
 def test_audit_wrong_verdict_is_never_a_near_miss_even_if_the_number_is_close():
     """A wrong verdict is a conceptual failure, not a precision issue — it
     should never be softened into near_miss just because a nearby number was
