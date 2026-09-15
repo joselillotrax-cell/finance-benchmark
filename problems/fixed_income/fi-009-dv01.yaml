@@ -1,0 +1,23 @@
+id: fi-009
+category: fixed_income
+kind: compute
+solver: price_yield
+answer_field: dv01
+unit: "EUR per basis point"
+tolerance: 0.001
+
+prompt: |
+  Same reference bond (EUR 1,000 face, 4% semi-annual coupon, issued
+  15 March 2024, maturing 15 March 2029, trading at 97.80% clean on
+  11 September 2025, ACT/ACT ICMA). What is its DV01 — the change in dirty
+  price for a one basis point move in yield — in euros?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 4.0
+  payments_per_year: 2
+  issue_date: "2024-03-15"
+  maturity_date: "2029-03-15"
+  settlement_date: "2025-09-11"
+  day_count: "ACT/ACT ICMA"
+  clean_price_pct_of_face: 97.80

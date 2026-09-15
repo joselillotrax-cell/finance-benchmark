@@ -1,0 +1,79 @@
+"""Problem loading.
+
+A problem file never stores a numeric answer. It stores the inputs, which
+solver turns them into every derived quantity, which field of that output is
+the one being graded, and how close counts as correct. The number itself is
+computed fresh every time a problem is loaded, from the same `bondmath` that
+backs the MCP server — so the benchmark cannot silently drift from its own
+reference implementation, and updating `bondmath` re-validates every problem
+in the suite for free.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Literal
+
+import yaml
+
+__all__ = ["Problem", "load_problem", "load_all_problems"]
+
+Kind = Literal["compute", "audit"]
+
+
+@dataclass(frozen=True)
+class Problem:
+    """One benchmark item.
+
+    Attributes:
+        id: Short unique identifier, e.g. "fi-003".
+        category: Top-level grouping, e.g. "fixed_income".
+        kind: "compute" grades a single numeric field. "audit" grades whether
+            a claimed figure was correctly judged right or wrong.
+        prompt: The natural-language question, verbatim, as it should be
+            given to a model under test.
+        solver: Key into `benchmark.solvers.SOLVERS` — which reference
+            function turns `inputs` into checkable outputs.
+        inputs: Raw parameters passed to the solver.
+        answer_field: For "compute", the solver-output key being graded.
+            Unused for "audit", which grades `is_correct` plus, when the
+            claim was wrong, `correct_ytm_pct`.
+        unit: Human-readable unit of the answer, for display only.
+        tolerance: Absolute tolerance in the same units as `answer_field`.
+        known_failure_modes: Name -> alternate solver output key. If a wrong
+            answer matches one of these within tolerance, grading reports
+            which known failure pattern it matches, rather than just "wrong".
+    """
+
+    id: str
+    category: str
+    kind: Kind
+    prompt: str
+    solver: str
+    inputs: dict[str, Any]
+    answer_field: str | None = None
+    unit: str = ""
+    tolerance: float = 1e-6
+    known_failure_modes: dict[str, str] = field(default_factory=dict)
+
+
+def load_problem(path: Path) -> Problem:
+    data = yaml.safe_load(path.read_text())
+    return Problem(
+        id=data["id"],
+        category=data["category"],
+        kind=data["kind"],
+        prompt=data["prompt"].strip(),
+        solver=data["solver"],
+        inputs=data["inputs"],
+        answer_field=data.get("answer_field"),
+        unit=data.get("unit", ""),
+        tolerance=float(data.get("tolerance", 1e-6)),
+        known_failure_modes=data.get("known_failure_modes", {}),
+    )
+
+
+def load_all_problems(root: Path) -> list[Problem]:
+    files = sorted(root.rglob("*.yaml"))
+    return [load_problem(f) for f in files]

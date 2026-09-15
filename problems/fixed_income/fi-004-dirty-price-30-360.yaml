@@ -1,0 +1,23 @@
+id: fi-004
+category: fixed_income
+kind: compute
+solver: price_yield
+answer_field: dirty_price
+unit: "USD"
+tolerance: 0.01
+
+prompt: |
+  A US corporate bond has face value $1,000, a 6% semi-annual coupon, uses
+  the 30/360 day-count convention, was issued 1 January 2020, and matures
+  1 January 2030. On settlement 15 June 2026 it trades at 94.5% clean. What
+  is its dirty price, in dollars?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 6.0
+  payments_per_year: 2
+  issue_date: "2020-01-01"
+  maturity_date: "2030-01-01"
+  settlement_date: "2026-06-15"
+  day_count: "30/360"
+  clean_price_pct_of_face: 94.5

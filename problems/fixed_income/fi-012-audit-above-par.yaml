@@ -1,0 +1,23 @@
+id: fi-012
+category: fixed_income
+kind: audit
+solver: audit
+unit: "%"
+tolerance: 0.001
+
+prompt: |
+  A colleague tells you: "This bond — EUR 1,000 face, 6% annual coupon,
+  issued 1 January 2022, maturing 1 January 2032, trading at 108% clean on
+  15 September 2026 — yields 6.5%." Is that figure correct? If not, what is
+  the correct yield to maturity?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 6.0
+  payments_per_year: 1
+  issue_date: "2022-01-01"
+  maturity_date: "2032-01-01"
+  settlement_date: "2026-09-15"
+  day_count: "ACT/ACT ICMA"
+  clean_price_pct_of_face: 108
+  claimed_ytm_pct: 6.5

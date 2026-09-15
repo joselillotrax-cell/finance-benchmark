@@ -1,0 +1,24 @@
+id: fi-005
+category: fixed_income
+kind: compute
+solver: scenario
+answer_field: exact_repricing
+unit: "EUR"
+tolerance: 0.05
+
+prompt: |
+  Same reference bond (EUR 1,000 face, 4% semi-annual coupon, issued
+  15 March 2024, maturing 15 March 2029, trading at 97.80% clean on
+  11 September 2025, ACT/ACT ICMA). If yields rise 75 basis points
+  instantly, what is the bond's new dirty price, in euros?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 4.0
+  payments_per_year: 2
+  issue_date: "2024-03-15"
+  maturity_date: "2029-03-15"
+  settlement_date: "2025-09-11"
+  day_count: "ACT/ACT ICMA"
+  clean_price_pct_of_face: 97.80
+  shock_bp: 75

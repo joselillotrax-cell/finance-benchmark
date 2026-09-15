@@ -1,0 +1,23 @@
+id: fi-006
+category: fixed_income
+kind: compute
+solver: price_yield
+answer_field: ytm_pct
+unit: "%"
+tolerance: 0.001
+
+prompt: |
+  A bond has face value EUR 1,000, a 6% annual coupon (paid once a year),
+  was issued 1 January 2022, and matures 1 January 2032. On settlement
+  15 September 2026 it trades at 108% of face value, clean, under ACT/ACT
+  ICMA. What is its yield to maturity?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 6.0
+  payments_per_year: 1
+  issue_date: "2022-01-01"
+  maturity_date: "2032-01-01"
+  settlement_date: "2026-09-15"
+  day_count: "ACT/ACT ICMA"
+  clean_price_pct_of_face: 108

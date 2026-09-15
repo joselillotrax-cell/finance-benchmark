@@ -1,0 +1,24 @@
+id: fi-001
+category: fixed_income
+kind: compute
+solver: price_yield
+answer_field: ytm_pct
+unit: "%"
+tolerance: 0.001
+
+prompt: |
+  A Spanish government bond has face value EUR 1,000, a 4% annual coupon paid
+  semi-annually, was issued 15 March 2024, and matures 15 March 2029. Today,
+  11 September 2025, it trades at 97.80% of face value (clean price), under
+  the ACT/ACT ICMA day-count convention. What is its yield to maturity, as a
+  percentage?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 4.0
+  payments_per_year: 2
+  issue_date: "2024-03-15"
+  maturity_date: "2029-03-15"
+  settlement_date: "2025-09-11"
+  day_count: "ACT/ACT ICMA"
+  clean_price_pct_of_face: 97.80

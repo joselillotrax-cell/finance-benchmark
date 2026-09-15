@@ -1,0 +1,25 @@
+id: fi-007
+category: fixed_income
+kind: compute
+solver: price_yield
+answer_field: modified_duration_years
+unit: "years"
+tolerance: 0.005
+known_failure_modes:
+  naive_annualisation: naive_modified_duration_years
+
+prompt: |
+  A bond has face value EUR 1,000, a 2% semi-annual coupon, was issued
+  1 January 2019, and matures 1 January 2035. On settlement 15 September
+  2026 it trades at 85% of face value, clean, under ACT/ACT ICMA. What is
+  its modified duration, in years?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 2.0
+  payments_per_year: 2
+  issue_date: "2019-01-01"
+  maturity_date: "2035-01-01"
+  settlement_date: "2026-09-15"
+  day_count: "ACT/ACT ICMA"
+  clean_price_pct_of_face: 85

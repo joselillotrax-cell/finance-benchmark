@@ -1,0 +1,22 @@
+id: fi-011
+category: fixed_income
+kind: compute
+solver: price_yield
+answer_field: convexity_years_squared
+unit: "years^2"
+tolerance: 0.05
+
+prompt: |
+  Same reference bond (EUR 1,000 face, 4% semi-annual coupon, issued
+  15 March 2024, maturing 15 March 2029, trading at 97.80% clean on
+  11 September 2025, ACT/ACT ICMA). What is its convexity, in years squared?
+
+inputs:
+  face_value: 1000
+  coupon_rate_pct: 4.0
+  payments_per_year: 2
+  issue_date: "2024-03-15"
+  maturity_date: "2029-03-15"
+  settlement_date: "2025-09-11"
+  day_count: "ACT/ACT ICMA"
+  clean_price_pct_of_face: 97.80
