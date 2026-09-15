@@ -132,3 +132,45 @@ def test_audit_wrong_verdict_is_caught_even_with_right_number_nearby():
     p = load_problem(ROOT / "fixed_income" / "fi-003-audit-below-par.yaml")
     result = grade(p, {"is_correct": True, "corrected_ytm_pct": 4.01})
     assert result.correct is False
+
+
+# --- near-miss tier ----------------------------------------------------
+
+
+def test_a_close_answer_is_a_near_miss_not_a_pass_or_a_fail():
+    """The regression for the tolerance-policy decision this came from:
+    4.6918% on fi-001 (0.51 bp off, well within the default 10x loose band)
+    should read as distinct from both a clean pass and a genuinely wrong
+    method — this is the exact value an earlier session produced."""
+    p = load_problem(ROOT / "fixed_income" / "fi-001-ytm-actact.yaml")
+    result = grade(p, 4.6918)
+    assert result.status == "near_miss"
+    assert result.correct is False  # near miss is never "correct"
+
+
+def test_a_genuinely_distant_answer_is_still_wrong_not_a_near_miss():
+    p = load_problem(ROOT / "fixed_income" / "fi-001-ytm-actact.yaml")
+    result = grade(p, 4.7174)  # 3.07 bp off — outside the 1 bp loose band
+    assert result.status == "wrong"
+
+
+def test_default_loose_tolerance_is_ten_times_strict_tolerance():
+    p = load_problem(ROOT / "fixed_income" / "fi-001-ytm-actact.yaml")
+    assert p.loose_tolerance is None
+    assert p.effective_loose_tolerance == pytest.approx(p.tolerance * 10)
+
+
+def test_audit_near_miss_on_the_corrected_value_does_not_count_as_correct():
+    p = load_problem(ROOT / "fixed_income" / "fi-003-audit-below-par.yaml")
+    # right verdict, corrected figure close but outside tight tolerance
+    result = grade(p, {"is_correct": False, "corrected_ytm_pct": 4.6918})
+    assert result.status == "near_miss"
+
+
+def test_audit_wrong_verdict_is_never_a_near_miss_even_if_the_number_is_close():
+    """A wrong verdict is a conceptual failure, not a precision issue — it
+    should never be softened into near_miss just because a nearby number was
+    also supplied."""
+    p = load_problem(ROOT / "fixed_income" / "fi-003-audit-below-par.yaml")
+    result = grade(p, {"is_correct": True, "corrected_ytm_pct": 4.6867})
+    assert result.status == "wrong"

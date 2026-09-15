@@ -41,6 +41,13 @@ class Problem:
             claim was wrong, `correct_ytm_pct`.
         unit: Human-readable unit of the answer, for display only.
         tolerance: Absolute tolerance in the same units as `answer_field`.
+            An answer within this counts as fully correct.
+        loose_tolerance: A second, wider band. An answer outside `tolerance`
+            but within this counts as a "near miss" — close enough that the
+            method was probably sound and the gap is precision, not concept.
+            Defaults to 10x `tolerance` when not set explicitly. A near miss
+            is never graded as correct; it is a separate, visible category
+            rather than being folded into either "right" or "wrong".
         known_failure_modes: Name -> alternate solver output key. If a wrong
             answer matches one of these within tolerance, grading reports
             which known failure pattern it matches, rather than just "wrong".
@@ -55,7 +62,12 @@ class Problem:
     answer_field: str | None = None
     unit: str = ""
     tolerance: float = 1e-6
+    loose_tolerance: float | None = None
     known_failure_modes: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def effective_loose_tolerance(self) -> float:
+        return self.loose_tolerance if self.loose_tolerance is not None else self.tolerance * 10
 
 
 def load_problem(path: Path) -> Problem:
@@ -70,6 +82,9 @@ def load_problem(path: Path) -> Problem:
         answer_field=data.get("answer_field"),
         unit=data.get("unit", ""),
         tolerance=float(data.get("tolerance", 1e-6)),
+        loose_tolerance=(
+            float(data["loose_tolerance"]) if "loose_tolerance" in data else None
+        ),
         known_failure_modes=data.get("known_failure_modes", {}),
     )
 

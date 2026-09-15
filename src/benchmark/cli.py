@@ -52,7 +52,7 @@ def cmd_grade(args: argparse.Namespace) -> None:
     p = _find(args.id)
     candidate = json.loads(args.answer) if p.kind == "audit" else float(args.answer)
     result = grade(p, candidate)
-    mark = "PASS" if result.correct else "FAIL"
+    mark = {"correct": "PASS", "near_miss": "NEAR MISS", "wrong": "FAIL"}[result.status]
     print(f"[{mark}] {p.id}: {result.detail}")
     sys.exit(0 if result.correct else 1)
 

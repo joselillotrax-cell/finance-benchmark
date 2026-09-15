@@ -2,25 +2,33 @@
 
 Two problem kinds, two grading rules:
 
-`compute` problems check one numeric field within a tolerance. If the answer
-is wrong, grading also checks whether it matches a *known* wrong answer —
-the naive annualisation divisor, for instance — so a failure report says
-*which* mistake was made, not just that one was.
+`compute` problems check one numeric field. Three outcomes, not two: within
+`tolerance` is `correct`; outside that but within `loose_tolerance` is
+`near_miss` — close enough that the method was probably sound and the gap is
+precision rather than concept; anything wider is `wrong`. Collapsing a near
+miss into a binary pass/fail would treat "iterated one Newton step short of
+convergence" the same as "used the wrong formula," which throws away exactly
+the distinction this project cares about. If the answer is wrong (not
+correct), grading also checks whether it matches a *known* wrong answer — the
+naive annualisation divisor, for instance — so a failure report says *which*
+mistake was made, not just that one was.
 
 `audit` problems check a binary verdict (was the claimed figure plausible?)
 and, when the claim was wrong, whether the model's corrected figure is close
-to the true one.
+to the true one — graded with the same three-tier tolerance.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from .problem import Problem
 from .solvers import SOLVERS
 
-__all__ = ["GradeResult", "grade"]
+__all__ = ["GradeResult", "Status", "grade"]
+
+Status = Literal["correct", "near_miss", "wrong"]
 
 
 @dataclass(frozen=True)
@@ -28,36 +36,59 @@ class GradeResult:
     """Outcome of grading one candidate answer.
 
     Attributes:
-        correct: Whether the answer falls within tolerance of the reference.
+        status: "correct" (within tolerance), "near_miss" (within the wider
+            loose_tolerance band but not tolerance), or "wrong".
+        correct: True only when status == "correct". Kept as a plain bool
+            alongside `status` so simple pass/fail checks don't need to know
+            about the three-tier scheme.
         expected: The reference value(s) computed for this problem.
         candidate: What was graded.
         matched_known_failure_mode: Name of the known wrong-answer pattern
-            the candidate matches, if `correct` is False and it matches one.
+            the candidate matches, if status != "correct" and it matches one.
         detail: One-line human-readable summary.
     """
 
-    correct: bool
+    status: Status
     expected: Any
     candidate: Any
     matched_known_failure_mode: str | None
     detail: str
 
+    @property
+    def correct(self) -> bool:
+        return self.status == "correct"
+
+
+def _classify(diff: float, tolerance: float, loose_tolerance: float) -> Status:
+    if diff <= tolerance:
+        return "correct"
+    if diff <= loose_tolerance:
+        return "near_miss"
+    return "wrong"
+
 
 def _grade_compute(problem: Problem, candidate: float) -> GradeResult:
     outputs = SOLVERS[problem.solver](problem.inputs)
     expected = outputs[problem.answer_field]
-    correct = abs(candidate - expected) <= problem.tolerance
+    diff = abs(candidate - expected)
+    status = _classify(diff, problem.tolerance, problem.effective_loose_tolerance)
 
     matched = None
-    if not correct:
+    if status != "correct":
         for name, field in problem.known_failure_modes.items():
             alt = outputs.get(field)
             if alt is not None and abs(candidate - alt) <= problem.tolerance:
                 matched = name
                 break
 
-    if correct:
+    if status == "correct":
         detail = f"within tolerance of {expected:.6g} {problem.unit}"
+    elif status == "near_miss":
+        detail = (
+            f"near miss: expected {expected:.6g} {problem.unit}, got "
+            f"{candidate:.6g} (off by {diff:.4g}, within the wider band — "
+            f"method looks sound, precision is off)"
+        )
     elif matched:
         detail = (
             f"expected {expected:.6g} {problem.unit}; matches the known "
@@ -66,7 +97,7 @@ def _grade_compute(problem: Problem, candidate: float) -> GradeResult:
     else:
         detail = f"expected {expected:.6g} {problem.unit}, got {candidate:.6g}"
 
-    return GradeResult(correct, expected, candidate, matched, detail)
+    return GradeResult(status, expected, candidate, matched, detail)
 
 
 def _grade_audit(problem: Problem, candidate: dict[str, Any]) -> GradeResult:
@@ -74,21 +105,31 @@ def _grade_audit(problem: Problem, candidate: dict[str, Any]) -> GradeResult:
     expected = {"is_correct": outputs["is_correct"], "correct_ytm_pct": outputs["correct_ytm_pct"]}
 
     verdict_ok = bool(candidate.get("is_correct")) == outputs["is_correct"]
-    value_ok = True
+
+    value_status: Status = "correct"
     if not outputs["is_correct"]:
         corrected = candidate.get("corrected_ytm_pct")
-        value_ok = corrected is not None and abs(corrected - outputs["correct_ytm_pct"]) <= problem.tolerance
+        if corrected is None:
+            value_status = "wrong"
+        else:
+            diff = abs(corrected - outputs["correct_ytm_pct"])
+            value_status = _classify(diff, problem.tolerance, problem.effective_loose_tolerance)
 
-    correct = verdict_ok and value_ok
+    if not verdict_ok:
+        status: Status = "wrong"  # a wrong verdict is never a near miss
+    else:
+        status = value_status
 
-    if correct:
+    if status == "correct":
         detail = "verdict and corrected figure both right"
     elif not verdict_ok:
         detail = f"wrong verdict: claim is actually {'valid' if outputs['is_correct'] else 'invalid'}"
+    elif status == "near_miss":
+        detail = f"verdict right, corrected figure close but outside tight tolerance: expected {outputs['correct_ytm_pct']:.6g}"
     else:
         detail = f"verdict right, but corrected figure off: expected {outputs['correct_ytm_pct']:.6g}"
 
-    return GradeResult(correct, expected, candidate, None, detail)
+    return GradeResult(status, expected, candidate, None, detail)
 
 
 def grade(problem: Problem, candidate: Any) -> GradeResult:
