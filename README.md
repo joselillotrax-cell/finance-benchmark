@@ -48,11 +48,25 @@ finance-benchmark grade fi-001 4.6867
 finance-benchmark grade fi-003 '{"is_correct": false, "corrected_ytm_pct": 4.6867}'
 ```
 
-There is no model-calling built in yet — grading takes a candidate answer
-you already have. Ask a model the `prompt` from `finance-benchmark show`,
-paste its answer into `grade`, done. Automating "ask N models via API and
-grade all their answers" is the natural next step once there's a budget to
-run it against.
+There is no model-calling built in for external providers — grading takes a
+candidate answer you already have. Ask a model the `prompt` from
+`finance-benchmark show`, paste its answer into `grade`, done. That's still
+the only path for Gemini, GPT, or anything else that needs its own paid API
+key and account. Claude-family models can be queried and graded
+automatically without any of that, since it doesn't require a separate paid
+API — see `results/log.csv` for the `claude-haiku-4.5-automated` rows,
+produced by isolated subagents with no memory of this project and no access
+to the correct answers.
+
+## Findings
+
+[`results/findings.md`](results/findings.md) reads the log so far: a
+reproducible, bond-specific yield bias in one model (five independent
+occurrences, now encoded as a named `known_failure_mode`), a
+self-correction and its exact mirror image (self-sabotage) caught in two
+different runs, and a consistent "estimate instead of converge" pattern
+across an automated batch. Read the [Scope](results/findings.md#scope)
+section before treating any of it as a ranking.
 
 ## Tests
 
